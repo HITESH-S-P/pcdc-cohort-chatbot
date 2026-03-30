@@ -15,6 +15,11 @@ Author: **Hitesh S P**
 - GitHub profile: [https://github.com/HITESH-S-P](https://github.com/HITESH-S-P)
 - Project repo: [https://github.com/HITESH-S-P/pcdc-cohort-chatbot](https://github.com/HITESH-S-P/pcdc-cohort-chatbot)
 
+## Working
+<img width="1899" height="968" alt="Screenshot 2026-03-30 165349" src="https://github.com/user-attachments/assets/259fd3a0-a919-487a-aedd-ae5b27c41b94" />
+<img width="1900" height="964" alt="Screenshot 2026-03-30 165841" src="https://github.com/user-attachments/assets/bf45a70a-2c67-475e-9fb2-c45d30cc35e3" />
+
+
 ## Why this project
 
 PCDC cohort discovery typically requires careful knowledge of:
