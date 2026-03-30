@@ -1,0 +1,36 @@
+{
+  "name": "pcdc-chatbot-graphql-gsoc",
+  "version": "1.0.0",
+  "description": "GSoC 2026: PCDC Enhanced Chatbot with GraphQL Generation",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "node src/graphql/evaluator.js",
+    "build": "echo 'Ready to deploy!'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/pcdc-chatbot-gsoc-2026"
+  },
+  "keywords": [
+    "GSoC",
+    "PCDC",
+    "GraphQL",
+    "LLM",
+    "Chatbot"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "graphql": "^16.8.1",
+    "socket.io": "^4.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
