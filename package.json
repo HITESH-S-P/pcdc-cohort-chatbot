@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "node src/graphql/evaluator.js",
-    "build": "echo 'Ready to deploy!'"
+    "test": "node src/graphql/evaluator.js"
   },
   "repository": {
     "type": "git",
