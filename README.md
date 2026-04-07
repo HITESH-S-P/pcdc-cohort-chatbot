@@ -15,6 +15,8 @@ Author: **Hitesh S P**
 - GitHub profile: [https://github.com/HITESH-S-P](https://github.com/HITESH-S-P)
 - Project repo: [https://github.com/HITESH-S-P/pcdc-cohort-chatbot](https://github.com/HITESH-S-P/pcdc-cohort-chatbot)
 
+## Working
+
 ## Why this project
 
 PCDC cohort discovery typically requires careful knowledge of:
@@ -70,18 +72,27 @@ This avoids the common issue where GraphQL is displayed as plain AI text and bec
 ## Key Features
 
 1. **Gemini-powered LLM backend**
-  - Uses the Gemini API to generate GraphQL queries and to decide which tool to call.
+
+- Uses the Gemini API to generate GraphQL queries and to decide which tool to call.
+
 2. **Tool calling / intent routing**
-  - The agent uses function-style tool declarations:
-    - `general_inquiry`
-    - `browse_docs`
-    - `generate_graphql`
+
+- The agent uses function-style tool declarations:
+  - `general_inquiry`
+  - `browse_docs`
+  - `generate_graphql`
+
 3. **PCDC-aware GraphQL generation**
-  - The GraphQL generator provides the PCDC schema context to guide the model.
+
+- The GraphQL generator provides the PCDC schema context to guide the model.
+
 4. **Query validation**
-  - Generated queries are validated using the project’s GraphQL schema evaluator.
+
+- Generated queries are validated using the project’s GraphQL schema evaluator.
+
 5. **User-friendly GraphQL viewer UI**
-  - Code card layout, safe rendering, and one-click copy.
+
+- Code card layout, safe rendering, and one-click copy.
 
 ## Tech Stack
 
@@ -130,19 +141,19 @@ The frontend detects fenced GraphQL code blocks and renders them as a clean code
 Key files:
 
 - `src/index.js`  
-Express + Socket.IO server
+  Express + Socket.IO server
 - `src/agent.js`  
-LLM tool routing + tool execution
+  LLM tool routing + tool execution
 - `src/llm/gemini.js`  
-Gemini client wrapper
+  Gemini client wrapper
 - `src/tools/graphqlGenerator.js`  
-GraphQL generation response formatting
+  GraphQL generation response formatting
 - `src/graphql/generator.js`  
-GraphQL generation logic (prompt + extraction)
+  GraphQL generation logic (prompt + extraction)
 - `src/graphql/evaluator.js`  
-GraphQL validation and scoring
+  GraphQL validation and scoring
 - `public/index.html`  
-Chat UI + GraphQL viewer UI
+  Chat UI + GraphQL viewer UI
 
 ## Setup (Local Development)
 
@@ -244,8 +255,10 @@ For a “production-like” and stable Vercel deployment, a common approach is:
 
 1. Keep the UI static on Vercel.
 2. Replace the Socket.IO chat with a standard HTTP endpoint:
-  - `POST /api/chat`
-  - returns JSON response
+
+- `POST /api/chat`
+- returns JSON response
+
 3. Update the frontend to use `fetch()` instead of Socket.IO.
 
 This avoids websocket constraints and makes the app work reliably anywhere Vercel runs serverless functions.
@@ -262,13 +275,18 @@ Because this can vary by environment, the best practice for submission is to doc
 ## Limitations
 
 1. LLM output can vary
-  - The project uses schema validation and structured response formatting to reduce risk.
-2. Function calling behavior depends on model/tool support
-  - Tool declarations are translated into Gemini format inside `src/llm/gemini.js`.
-3. Query validation is schema-based
-  - It ensures GraphQL correctness, but not semantic correctness vs. actual underlying PCDC data.
 
-## Future Improvements 
+- The project uses schema validation and structured response formatting to reduce risk.
+
+2. Function calling behavior depends on model/tool support
+
+- Tool declarations are translated into Gemini format inside `src/llm/gemini.js`.
+
+3. Query validation is schema-based
+
+- It ensures GraphQL correctness, but not semantic correctness vs. actual underlying PCDC data.
+
+## Future Improvements
 
 - Add a “GraphQL Explorer test” button that performs a dry-run request (if a public endpoint exists).
 - Improve extraction robustness for different code fence formats.

@@ -605,20 +605,13 @@
       }
 
       function renderGraphQLCard(query) {
-        return `
-    <div class="graphql-card">
-      <div class="graphql-header">
-        <span>📊 GraphQL Query</span>
-        <button class="copy-button" onclick="copyQuery(this)">📋 Copy</button>
-      </div>
-      <div class="graphql-code" data-query="${escapeHtml(query)}">${escapeHtml(query)}</div>
-    </div>
-  `;
+        const escapedQuery = escapeHtml(query.trim());
+        return `<div class="graphql-card"><div class="graphql-header"><span>📊 GraphQL Query</span><button class="copy-button" onclick="copyQuery(this)">📋 Copy</button></div><pre class="graphql-code">${escapedQuery}</pre></div>`;
       }
 
       function copyQuery(button) {
         const code = button.parentElement.nextElementSibling;
-        const query = code.getAttribute("data-query");
+        const query = code.textContent;
 
         navigator.clipboard.writeText(query).then(() => {
           const original = button.textContent;
@@ -637,16 +630,28 @@
 
         let htmlContent = content;
 
-        // Render GraphQL blocks professionally
+        // Render GraphQL blocks professionally and preserve the query text exactly.
+        const codeBlocks = [];
         htmlContent = htmlContent.replace(
           /```graphql\s*([\s\S]*?)\s*```/gi,
-          renderGraphQLCard("$1"),
+          (_, query) => {
+            const placeholder = `[[GRAPHQL_BLOCK_${codeBlocks.length}]]`;
+            codeBlocks.push(renderGraphQLCard(query));
+            return placeholder;
+          },
         );
 
-        // Basic markdown support
+        // Basic markdown support for the rest of the content.
         htmlContent = htmlContent
           .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
           .replace(/\n/g, "<br>");
+
+        codeBlocks.forEach((blockHtml, index) => {
+          htmlContent = htmlContent.replace(
+            `[[GRAPHQL_BLOCK_${index}]]`,
+            blockHtml,
+          );
+        });
 
         const contentDiv = document.createElement("div");
         contentDiv.className = "message-content";

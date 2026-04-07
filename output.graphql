@@ -1,0 +1,12 @@
+query {
+  cohort(
+    filterSet: {
+      AND: [
+        { diagnosis: [{ term: { name: "breast cancer" } }] }
+        { demographics: [{ ageAtDiagnosis: { gte: 50 } }] }
+      ]
+    }
+  ) {
+    count
+  }
+}
