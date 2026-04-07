@@ -17,6 +17,9 @@ Author: **Hitesh S P**
 
 ## Working
 
+<img width="1899" height="968" alt="Screenshot 2026-03-30 165349" src="https://github.com/user-attachments/assets/259fd3a0-a919-487a-aedd-ae5b27c41b94" />
+<img width="1900" height="964" alt="Screenshot 2026-03-30 165841" src="https://github.com/user-attachments/assets/bf45a70a-2c67-475e-9fb2-c45d30cc35e3" />
+
 ## Why this project
 
 PCDC cohort discovery typically requires careful knowledge of:
@@ -27,7 +30,7 @@ PCDC cohort discovery typically requires careful knowledge of:
 
 Researchers and domain experts often think in natural language:
 
-> “Breast cancer patients diagnosed in 2020”  
+> “Breast cancer patients diagnosed in 2020”
 > “Lung cancer patients with EGFR mutation and age > 60”
 
 This project reduces the barrier by:
@@ -140,19 +143,13 @@ The frontend detects fenced GraphQL code blocks and renders them as a clean code
 
 Key files:
 
-- `src/index.js`  
-  Express + Socket.IO server
-- `src/agent.js`  
-  LLM tool routing + tool execution
-- `src/llm/gemini.js`  
-  Gemini client wrapper
-- `src/tools/graphqlGenerator.js`  
-  GraphQL generation response formatting
-- `src/graphql/generator.js`  
-  GraphQL generation logic (prompt + extraction)
-- `src/graphql/evaluator.js`  
-  GraphQL validation and scoring
-- `public/index.html`  
+- `src/index.js`Express + Socket.IO server
+- `src/agent.js`LLM tool routing + tool execution
+- `src/llm/gemini.js`Gemini client wrapper
+- `src/tools/graphqlGenerator.js`GraphQL generation response formatting
+- `src/graphql/generator.js`GraphQL generation logic (prompt + extraction)
+- `src/graphql/evaluator.js`GraphQL validation and scoring
+- `public/index.html`
   Chat UI + GraphQL viewer UI
 
 ## Setup (Local Development)
