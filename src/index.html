@@ -301,6 +301,9 @@
           <button class="quick-btn" onclick="quickQuery('graphql')">
             🚀 Generate Query
           </button>
+          <button class="quick-btn" onclick="quickQuery('explain')">
+            🔍 Explain Query
+          </button>
 
           <div
             style="
@@ -393,6 +396,8 @@
           general: "Tell me about PCDC cohort discovery",
           docs: "Show me PCDC GraphQL schema documentation",
           graphql: "Generate GraphQL query for breast cancer patients age 50+",
+          explain:
+            'Explain this GraphQL query: { cohort(filterSet: { diagnosis: [{ term: { name: "breast carcinoma" } }] }) { totalCounts { subjects } } }',
         };
         chatInput.value = queries[type];
         sendMessage();

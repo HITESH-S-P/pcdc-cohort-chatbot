@@ -2,6 +2,7 @@ const { LLMClient } = require("./llm/gemini");
 const { GeneralInquiryTool } = require("./tools/generalInquiry");
 const { DocBrowserTool } = require("./tools/docBrowser");
 const { GraphQLGenerator } = require("./tools/graphqlGenerator");
+const { QueryExplainer } = require("./tools/queryExplainer");
 
 class LLMAgent {
   constructor() {
@@ -10,6 +11,7 @@ class LLMAgent {
       general: new GeneralInquiryTool(),
       docs: new DocBrowserTool(),
       graphql: new GraphQLGenerator(),
+      explain: new QueryExplainer(),
     };
     this.lastToolUsed = null;
   }
@@ -56,6 +58,22 @@ class LLMAgent {
           },
         },
       },
+      {
+        type: "function",
+        function: {
+          name: "explain_query",
+          description: "Explain what a GraphQL query does in natural language",
+          parameters: {
+            type: "object",
+            properties: {
+              graphqlQuery: {
+                type: "string",
+                description: "The GraphQL query to explain",
+              },
+            },
+          },
+        },
+      },
     ];
 
     const messages = [
@@ -67,10 +85,12 @@ TOOLS:
 1. general_inquiry: General PCDC questions
 2. browse_docs: Documentation, schema questions  
 3. generate_graphql: "Show patients with...", "Find cohort of...", "breast cancer", etc.
+4. explain_query: "What does this query do?", "Explain this GraphQL", etc.
 
 DETECT USER INTENT:
 - Cohort queries → generate_graphql
 - "What is...", "Explain...", "How to..." → general_inquiry or browse_docs
+- "What does this query do?", "Explain this GraphQL" → explain_query
 - Always be helpful and explain results.
 
 Respond conversationally.`,
@@ -92,7 +112,11 @@ Respond conversationally.`,
 
       // For GraphQL/doc outputs we must preserve fenced code blocks exactly,
       // otherwise the UI can't reliably show the generated query.
-      if (toolName === "generate_graphql" || toolName === "browse_docs") {
+      if (
+        toolName === "generate_graphql" ||
+        toolName === "browse_docs" ||
+        toolName === "explain_query"
+      ) {
         return toolResult;
       }
 
@@ -110,6 +134,8 @@ Respond conversationally.`,
         return await this.tools.general.execute(args.query);
       case "browse_docs":
         return await this.tools.docs.execute(args.topic);
+      case "explain_query":
+        return await this.tools.explain.execute(args.graphqlQuery);
       default:
         return "Tool not found";
     }
