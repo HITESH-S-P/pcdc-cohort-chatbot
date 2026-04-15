@@ -125,6 +125,13 @@ Rules:
     const response = await this.chat(messages);
     return response.message.content;
   }
+
+  async generateText(prompt) {
+    const messages = [{ role: "user", content: prompt }];
+
+    const response = await this.chat(messages);
+    return response.message.content;
+  }
 }
 
 module.exports = { LLMClient };

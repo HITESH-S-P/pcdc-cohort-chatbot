@@ -3,6 +3,7 @@ const { GeneralInquiryTool } = require("./tools/generalInquiry");
 const { DocBrowserTool } = require("./tools/docBrowser");
 const { GraphQLGenerator } = require("./tools/graphqlGenerator");
 const { QueryExplainer } = require("./tools/queryExplainer");
+const { QueryOptimizer } = require("./tools/queryOptimizer");
 
 class LLMAgent {
   constructor() {
@@ -12,6 +13,7 @@ class LLMAgent {
       docs: new DocBrowserTool(),
       graphql: new GraphQLGenerator(),
       explain: new QueryExplainer(),
+      optimize: new QueryOptimizer(),
     };
     this.lastToolUsed = null;
   }
@@ -74,6 +76,22 @@ class LLMAgent {
           },
         },
       },
+      {
+        type: "function",
+        function: {
+          name: "optimize_query",
+          description: "Analyze and suggest optimizations for a GraphQL query",
+          parameters: {
+            type: "object",
+            properties: {
+              graphqlQuery: {
+                type: "string",
+                description: "The GraphQL query to optimize",
+              },
+            },
+          },
+        },
+      },
     ];
 
     const messages = [
@@ -86,11 +104,13 @@ TOOLS:
 2. browse_docs: Documentation, schema questions  
 3. generate_graphql: "Show patients with...", "Find cohort of...", "breast cancer", etc.
 4. explain_query: "What does this query do?", "Explain this GraphQL", etc.
+5. optimize_query: "Optimize this query", "Improve this GraphQL", "Make this query better", etc.
 
 DETECT USER INTENT:
 - Cohort queries → generate_graphql
 - "What is...", "Explain...", "How to..." → general_inquiry or browse_docs
 - "What does this query do?", "Explain this GraphQL" → explain_query
+- "Optimize", "Improve", "Better query" → optimize_query
 - Always be helpful and explain results.
 
 Respond conversationally.`,
@@ -115,7 +135,8 @@ Respond conversationally.`,
       if (
         toolName === "generate_graphql" ||
         toolName === "browse_docs" ||
-        toolName === "explain_query"
+        toolName === "explain_query" ||
+        toolName === "optimize_query"
       ) {
         return toolResult;
       }
@@ -136,6 +157,8 @@ Respond conversationally.`,
         return await this.tools.docs.execute(args.topic);
       case "explain_query":
         return await this.tools.explain.execute(args.graphqlQuery);
+      case "optimize_query":
+        return await this.tools.optimize.execute(args.graphqlQuery);
       default:
         return "Tool not found";
     }
