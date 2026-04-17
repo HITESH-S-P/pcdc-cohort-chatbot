@@ -87,6 +87,7 @@
         font-weight: 800;
         letter-spacing: -0.5px;
         background: linear-gradient(to right, var(--primary), #a855f7);
+        background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       }
@@ -349,10 +350,29 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io();
       const chatMessages = document.getElementById("chatMessages");
       const chatInput = document.getElementById("chatInput");
       const status = document.getElementById("status");
+      const sendBtn = document.getElementById("sendBtn");
+
+      // Transport:
+      // - Default: HTTP POST /api/chat (serverless-friendly)
+      // - Fallback: Socket.IO if HTTP fails
+      const urlParams = new URLSearchParams(window.location.search);
+      const preferSocket = urlParams.get("transport") === "socket";
+      let socket = null;
+      let transportMode = preferSocket ? "socket" : "http";
+
+      function ensureSocket() {
+        if (socket) return socket;
+        socket = io();
+        socket.on("bot-response", (data) => {
+          addMessage("bot", data.response);
+          status.textContent = "Systems Online";
+          sendBtn.disabled = false;
+        });
+        return socket;
+      }
 
       function addMessage(sender, content) {
         const msgDiv = document.createElement("div");
@@ -377,19 +397,48 @@
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
 
-      function sendMessage() {
+      async function sendMessage() {
         const msg = chatInput.value.trim();
         if (!msg) return;
         addMessage("user", msg);
         chatInput.value = "";
-        socket.emit("user-message", msg);
         status.textContent = "Processing...";
-      }
+        sendBtn.disabled = true;
 
-      socket.on("bot-response", (data) => {
-        addMessage("bot", data.response);
-        status.textContent = "Systems Online";
-      });
+        if (transportMode === "socket") {
+          ensureSocket().emit("user-message", msg);
+          return;
+        }
+
+        try {
+          const resp = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg }),
+          });
+
+          const data = await resp.json().catch(() => null);
+          if (!resp.ok) {
+            const errText =
+              (data && (data.error || data.message)) ||
+              `Request failed (${resp.status})`;
+            throw new Error(errText);
+          }
+
+          addMessage("bot", data.response);
+          status.textContent = "Systems Online";
+          sendBtn.disabled = false;
+        } catch (e) {
+          // Fallback to socket if available.
+          transportMode = "socket";
+          status.textContent = "Switching to Socket.IO...";
+          addMessage(
+            "bot",
+            `⚠️ HTTP chat failed (${String(e.message || e)}). Falling back to Socket.IO.`,
+          );
+          ensureSocket().emit("user-message", msg);
+        }
+      }
 
       function quickQuery(type) {
         const queries = {

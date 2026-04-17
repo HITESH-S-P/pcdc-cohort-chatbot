@@ -23,6 +23,29 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
+// HTTP alternative to Socket.IO (serverless-friendly).
+// Request: { "message": "..." }
+// Response: { "response": "...", "tool": "generate_graphql" }
+app.post("/api/chat", async (req, res) => {
+  const message = typeof req.body?.message === "string" ? req.body.message : "";
+
+  if (!message.trim()) {
+    return res.status(400).json({
+      error: 'Missing required field "message" (string).',
+    });
+  }
+
+  try {
+    const response = await agent.processMessage(message);
+    return res.json({ response, tool: agent.lastToolUsed });
+  } catch (error) {
+    return res.status(500).json({
+      error: `Error: ${error.message}`,
+      hint: 'Try: "Show breast cancer patients"',
+    });
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("👤 User connected:", socket.id);
 
