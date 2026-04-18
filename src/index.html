@@ -242,12 +242,49 @@
         color: #94a3b8;
         font-size: 0.75rem;
       }
+      .graphql-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      .graphql-action {
+        cursor: pointer;
+        color: #cbd5e1;
+        user-select: none;
+      }
+      .graphql-action:hover {
+        color: white;
+      }
       .graphql-code {
         padding: 1.25rem;
         color: #e2e8f0;
         font-family: "Consolas", monospace;
         font-size: 0.875rem;
         overflow-x: auto;
+      }
+      .json-card {
+        margin: 1rem 0;
+        background: #0b1220;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+      }
+      .json-header {
+        background: #07101f;
+        padding: 0.5rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #94a3b8;
+        font-size: 0.75rem;
+      }
+      .json-code {
+        padding: 1.25rem;
+        color: #e2e8f0;
+        font-family: "Consolas", monospace;
+        font-size: 0.875rem;
+        overflow-x: auto;
+        white-space: pre;
       }
 
       .status-badge {
@@ -385,8 +422,14 @@
             /```graphql\s*([\s\S]*?)\s*```/gi,
             (_, query) => {
               return `<div class="graphql-card">
-                    <div class="graphql-header"><span>QUERY</span><span style="cursor:pointer" onclick="copyText(this)">Copy</span></div>
-                    <pre class="graphql-code">${query.trim()}</pre>
+                    <div class="graphql-header">
+                      <span>QUERY</span>
+                      <span class="graphql-actions">
+                        <span class="graphql-action" onclick="runDummyTest(this)">Test</span>
+                        <span class="graphql-action" onclick="copyText(this)">Copy</span>
+                      </span>
+                    </div>
+                    <pre class="graphql-code">${escapeHtml(query.trim())}</pre>
                 </div>`;
             },
           );
@@ -395,6 +438,15 @@
         msgDiv.innerHTML = formatted.replace(/\n/g, "<br>");
         chatMessages.appendChild(msgDiv);
         chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
       }
 
       async function sendMessage() {
@@ -453,7 +505,66 @@
       }
 
       function copyText(el) {
-        const code = el.parentElement.nextElementSibling.innerText;
+        const header = el.closest(".graphql-header");
+        const code = header.nextElementSibling.innerText;
+        navigator.clipboard.writeText(code);
+        el.innerText = "Copied!";
+        setTimeout(() => (el.innerText = "Copy"), 2000);
+      }
+
+      async function runDummyTest(el) {
+        const header = el.closest(".graphql-header");
+        const code = header.nextElementSibling.innerText;
+
+        status.textContent = "Testing on dummy data...";
+        sendBtn.disabled = true;
+        el.innerText = "Testing...";
+
+        try {
+          const resp = await fetch("/api/test-query", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: code }),
+          });
+
+          const data = await resp.json().catch(() => null);
+          if (!resp.ok) {
+            const msg =
+              (data && (data.error || (data.errors && data.errors[0]?.message))) ||
+              `Test failed (${resp.status})`;
+            throw new Error(msg);
+          }
+
+          const pretty = JSON.stringify(data, null, 2);
+          addMessage(
+            "bot",
+            `<div class="json-card">
+              <div class="json-header">
+                <span>DUMMY DATA RESULT</span>
+                <span class="graphql-actions">
+                  <span class="graphql-action" onclick="copyJson(this)">Copy</span>
+                </span>
+              </div>
+              <pre class="json-code">${escapeHtml(pretty)}</pre>
+            </div>`,
+          );
+
+          status.textContent = "Systems Online";
+        } catch (e) {
+          addMessage(
+            "bot",
+            `❌ Dummy test failed: ${String(e.message || e)}\n\nTip: your generated query must request fields that exist in the demo schema (e.g. \`cohort { count totalCount cases { caseId } }\`).`,
+          );
+          status.textContent = "Systems Online";
+        } finally {
+          sendBtn.disabled = false;
+          el.innerText = "Test";
+        }
+      }
+
+      function copyJson(el) {
+        const header = el.closest(".json-header");
+        const code = header.nextElementSibling.innerText;
         navigator.clipboard.writeText(code);
         el.innerText = "Copied!";
         setTimeout(() => (el.innerText = "Copy"), 2000);

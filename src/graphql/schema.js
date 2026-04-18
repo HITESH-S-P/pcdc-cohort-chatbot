@@ -49,6 +49,8 @@ input TreatmentFilter {
 }
 
 type CohortResults {
+  # Back-compat with existing UI / generator outputs
+  count: Int!
   totalCount: Int!
   cases: [Case!]!
 }

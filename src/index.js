@@ -6,6 +6,7 @@ const cors = require("cors");
 const path = require("path");
 
 const { LLMAgent } = require("./agent");
+const { runQueryOnDummyData } = require("./graphql/dummyRunner");
 const agent = new LLMAgent();
 
 const app = express();
@@ -46,6 +47,42 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+// Execute a GraphQL query against a small in-memory dummy dataset.
+// Request: { "query": "query { ... }", "variables": { ... } }
+// Response: standard GraphQL response shape { data, errors }
+app.post("/api/test-query", async (req, res) => {
+  const query = typeof req.body?.query === "string" ? req.body.query : "";
+  const variables =
+    req.body && typeof req.body.variables === "object" ? req.body.variables : {};
+
+  if (!query.trim()) {
+    return res.status(400).json({
+      error: 'Missing required field "query" (string).',
+    });
+  }
+
+  try {
+    const result = await runQueryOnDummyData(query, variables);
+
+    if (result?.errors?.length) {
+      return res.status(400).json({
+        data: result.data ?? null,
+        errors: result.errors.map((e) => ({
+          message: e.message,
+          locations: e.locations,
+          path: e.path,
+        })),
+      });
+    }
+
+    return res.json(result);
+  } catch (error) {
+    return res.status(500).json({
+      error: `Error: ${error.message}`,
+    });
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("👤 User connected:", socket.id);
 
@@ -63,8 +100,29 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 PCDC Chatbot: http://localhost:${PORT}`);
+let port = Number.parseInt(process.env.PORT, 10);
+if (!Number.isFinite(port) || port <= 0) port = 3000;
+
+const MAX_PORT_RETRIES = 10;
+let portAttempts = 0;
+
+server.on("error", (err) => {
+  if (err && err.code === "EADDRINUSE" && portAttempts < MAX_PORT_RETRIES) {
+    portAttempts += 1;
+    const nextPort = port + 1;
+    console.warn(
+      `⚠️ Port ${port} in use. Retrying on port ${nextPort} (${portAttempts}/${MAX_PORT_RETRIES})...`,
+    );
+    port = nextPort;
+    setTimeout(() => server.listen(port), 250);
+    return;
+  }
+
+  console.error("❌ Server failed to start:", err);
+  process.exit(1);
+});
+
+server.listen(port, () => {
+  console.log(`🚀 PCDC Chatbot: http://localhost:${port}`);
   console.log(`📊 Test: node src/graphql/evaluator.js`);
 });
