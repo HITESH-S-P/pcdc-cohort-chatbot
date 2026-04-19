@@ -4,6 +4,28 @@ const { DUMMY_CASES } = require("./dummyData");
 
 const dummySchema = buildSchema(PCDC_SCHEMA);
 
+/**
+ * LLM output often omits the `query { ... }` wrapper; GraphQL requires an operation.
+ * If parsing fails, retry with a standard query wrapper.
+ */
+function normalizeQueryDocument(query) {
+  const trimmed = (query ?? "").trim();
+  if (!trimmed) return trimmed;
+
+  try {
+    parse(trimmed);
+    return trimmed;
+  } catch {
+    const wrapped = `query {\n${trimmed}\n}`;
+    try {
+      parse(wrapped);
+      return wrapped;
+    } catch {
+      return trimmed;
+    }
+  }
+}
+
 function normStr(s) {
   return (s ?? "").toString().trim().toLowerCase();
 }
@@ -108,7 +130,8 @@ const rootValue = {
 };
 
 async function runQueryOnDummyData(query, variables = {}) {
-  const ast = parse(query);
+  const document = normalizeQueryDocument(query);
+  const ast = parse(document);
   const errors = validate(dummySchema, ast);
   if (errors.length > 0) {
     return { data: null, errors };
@@ -116,7 +139,7 @@ async function runQueryOnDummyData(query, variables = {}) {
 
   return await graphql({
     schema: dummySchema,
-    source: query,
+    source: document,
     rootValue,
     variableValues: variables,
   });

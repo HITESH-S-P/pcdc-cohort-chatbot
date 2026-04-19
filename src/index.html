@@ -505,16 +505,16 @@
       }
 
       function copyText(el) {
-        const header = el.closest(".graphql-header");
-        const code = header.nextElementSibling.innerText;
+        const card = el.closest(".graphql-card");
+        const code = card.querySelector(".graphql-code").innerText;
         navigator.clipboard.writeText(code);
         el.innerText = "Copied!";
         setTimeout(() => (el.innerText = "Copy"), 2000);
       }
 
       async function runDummyTest(el) {
-        const header = el.closest(".graphql-header");
-        const code = header.nextElementSibling.innerText;
+        const card = el.closest(".graphql-card");
+        const code = card.querySelector(".graphql-code").innerText;
 
         status.textContent = "Testing on dummy data...";
         sendBtn.disabled = true;
