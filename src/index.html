@@ -304,6 +304,116 @@
         border-radius: 50%;
         box-shadow: 0 0 8px #10b981;
       }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .info-btn {
+        background: white;
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 0.55rem 0.9rem;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: all 0.2s;
+      }
+
+      .info-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: #f8fafc;
+        transform: translateY(-1px);
+      }
+
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2, 6, 23, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+        z-index: 50;
+      }
+
+      .modal-backdrop.open {
+        display: flex;
+      }
+
+      .modal {
+        width: min(720px, 100%);
+        background: var(--bg-glass);
+        backdrop-filter: blur(14px);
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        box-shadow: var(--shadow-xl);
+        overflow: hidden;
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.1rem 1.25rem;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.75);
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .modal-title {
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+      }
+
+      .modal-close {
+        background: transparent;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+        color: var(--text-primary);
+        border-radius: 0.65rem;
+        padding: 0.35rem 0.6rem;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .modal-close:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+      }
+
+      .modal-body {
+        padding: 1.25rem;
+        color: var(--text-primary);
+        line-height: 1.6;
+      }
+
+      .modal-body p {
+        margin-bottom: 0.75rem;
+        color: var(--text-secondary);
+      }
+
+      .modal-body ul {
+        padding-left: 1.15rem;
+        color: var(--text-secondary);
+        margin-top: 0.35rem;
+      }
+
+      .modal-body li {
+        margin: 0.4rem 0;
+      }
+
+      .modal-body code {
+        font-family: "Consolas", monospace;
+        font-size: 0.85em;
+        background: rgba(226, 232, 240, 0.7);
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.35rem;
+        color: #0f172a;
+      }
     </style>
   </head>
   <body>
@@ -316,9 +426,14 @@
             >GSoC 2026 OFFICIAL DEMO</span
           >
         </div>
-        <div class="status-badge">
-          <div class="status-dot"></div>
-          <span id="status">Systems Online</span>
+        <div class="header-actions">
+          <button class="info-btn" onclick="openHowItWorks()" type="button">
+            How it works
+          </button>
+          <div class="status-badge">
+            <div class="status-dot"></div>
+            <span id="status">Systems Online</span>
+          </div>
         </div>
       </header>
 
@@ -385,12 +500,56 @@
       </div>
     </div>
 
+    <div
+      class="modal-backdrop"
+      id="howItWorksModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="howItWorksTitle"
+    >
+      <div class="modal" role="document">
+        <div class="modal-header">
+          <div class="modal-title" id="howItWorksTitle">
+            How this project works
+          </div>
+          <button class="modal-close" onclick="closeHowItWorks()" type="button">
+            Close
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>
+            This demo turns your natural-language cohort request into a GraphQL
+            query for the Pediatric Cancer Data Commons (PCDC).
+          </p>
+          <ul>
+            <li>
+              You type a cohort description (e.g. diagnosis, age, filters).
+            </li>
+            <li>
+              The backend LLM agent selects a tool (docs, generate, explain) and
+              returns an answer — often a <code>```graphql</code> block.
+            </li>
+            <li>
+              The UI renders that GraphQL in a “query card”, and you can
+              optionally <b>Test</b> it against in-memory dummy data via
+              <code>/api/test-query</code>.
+            </li>
+            <li>
+              Messages are sent via <code>/api/chat</code> (HTTP) with automatic
+              fallback to Socket.IO if needed.
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script>
       const chatMessages = document.getElementById("chatMessages");
       const chatInput = document.getElementById("chatInput");
       const status = document.getElementById("status");
       const sendBtn = document.getElementById("sendBtn");
+      const howItWorksModal = document.getElementById("howItWorksModal");
 
       // Transport:
       // - Default: HTTP POST /api/chat (serverless-friendly)
@@ -569,6 +728,22 @@
         el.innerText = "Copied!";
         setTimeout(() => (el.innerText = "Copy"), 2000);
       }
+
+      function openHowItWorks() {
+        howItWorksModal.classList.add("open");
+      }
+
+      function closeHowItWorks() {
+        howItWorksModal.classList.remove("open");
+      }
+
+      howItWorksModal.addEventListener("click", (e) => {
+        if (e.target === howItWorksModal) closeHowItWorks();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeHowItWorks();
+      });
 
       chatInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
