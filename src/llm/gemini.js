@@ -126,6 +126,38 @@ Rules:
     return response.message.content;
   }
 
+  async repairGraphQLQuery({ failingQuery, errorMessage, context }) {
+    const messages = [
+      {
+        role: "system",
+        content: `You repair GraphQL queries for the PCDC demo schema.
+
+PCDC Schema/Context:
+${context}
+
+Rules:
+1. Output ONLY a single \`\`\`graphql\`\`\` fenced block with the corrected query.
+2. Preserve the user's intent from the failing query; fix only what is needed.
+3. Ensure the result is valid for the schema (field names, required args, selection sets).
+4. If the failing query omits an operation wrapper, add \`query { ... }\`.
+5. Do not include explanations or extra text outside the code block.`,
+      },
+      {
+        role: "user",
+        content: `Failing query:
+\`\`\`graphql
+${failingQuery}
+\`\`\`
+
+Error:
+${errorMessage}`,
+      },
+    ];
+
+    const response = await this.chat(messages);
+    return response.message.content;
+  }
+
   async generateText(prompt) {
     const messages = [{ role: "user", content: prompt }];
 

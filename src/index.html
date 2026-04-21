@@ -423,7 +423,7 @@
         <div>
           <h2 class="logo-text">PCDC Discovery</h2>
           <span style="font-size: 0.7rem; color: var(--text-secondary)"
-            >GSoC 2026 OFFICIAL DEMO</span
+            >GSoC OFFICIAL DEMO</span
           >
         </div>
         <div class="header-actions">
@@ -689,7 +689,8 @@
           const data = await resp.json().catch(() => null);
           if (!resp.ok) {
             const msg =
-              (data && (data.error || (data.errors && data.errors[0]?.message))) ||
+              (data &&
+                (data.error || (data.errors && data.errors[0]?.message))) ||
               `Test failed (${resp.status})`;
             throw new Error(msg);
           }
@@ -710,11 +711,75 @@
 
           status.textContent = "Systems Online";
         } catch (e) {
-          addMessage(
-            "bot",
-            `❌ Dummy test failed: ${String(e.message || e)}\n\nTip: your generated query must request fields that exist in the demo schema (e.g. \`cohort { count totalCount cases { caseId } }\`).`,
-          );
-          status.textContent = "Systems Online";
+          const errMsg = String(e.message || e);
+
+          // Auto-repair loop: on validation/runtime errors, ask backend to generate
+          // a corrected query and retry once.
+          status.textContent = "Query failed — auto-fixing...";
+          el.innerText = "Fixing...";
+
+          try {
+            const fixResp = await fetch("/api/fix-query", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query: code, error: errMsg }),
+            });
+
+            const fixData = await fixResp.json().catch(() => null);
+            if (!fixResp.ok) {
+              const msg =
+                (fixData && (fixData.error || fixData.message)) ||
+                `Auto-fix failed (${fixResp.status})`;
+              throw new Error(msg);
+            }
+
+            if (!fixData || !fixData.correctedQuery) {
+              throw new Error("Auto-fix returned no corrected query.");
+            }
+
+            addMessage(
+              "bot",
+              `This query failed, so I auto-generated a corrected version:\n\n\`\`\`graphql\n${fixData.correctedQuery}\n\`\`\`\n`,
+            );
+
+            if (fixData.result) {
+              const pretty = JSON.stringify(fixData.result, null, 2);
+              addMessage(
+                "bot",
+                `<div class="json-card">
+                  <div class="json-header">
+                    <span>DUMMY DATA RESULT (AFTER FIX)</span>
+                    <span class="graphql-actions">
+                      <span class="graphql-action" onclick="copyJson(this)">Copy</span>
+                    </span>
+                  </div>
+                  <pre class="json-code">${escapeHtml(pretty)}</pre>
+                </div>`,
+              );
+            } else if (fixData.errors && fixData.errors.length) {
+              const msg =
+                fixData.errors[0]?.message ||
+                "Corrected query still failed validation.";
+              addMessage(
+                "bot",
+                `⚠️ I generated a corrected query, but it still failed on the demo schema: ${escapeHtml(
+                  msg,
+                )}`,
+              );
+            }
+
+            status.textContent = "Systems Online";
+          } catch (fixErr) {
+            addMessage(
+              "bot",
+              `❌ Dummy test failed: ${escapeHtml(
+                errMsg,
+              )}\n\nI also tried to auto-fix it, but that failed: ${escapeHtml(
+                String(fixErr.message || fixErr),
+              )}\n\nTip: your query must match the demo schema (e.g. \`cohort(filterSet: {...}) { count totalCount cases { caseId } }\`).`,
+            );
+            status.textContent = "Systems Online";
+          }
         } finally {
           sendBtn.disabled = false;
           el.innerText = "Test";

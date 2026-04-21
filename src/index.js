@@ -7,6 +7,7 @@ const path = require("path");
 
 const { LLMAgent } = require("./agent");
 const { runQueryOnDummyData } = require("./graphql/dummyRunner");
+const { repairGraphQLQuery } = require("./graphql/repair");
 const agent = new LLMAgent();
 
 const app = express();
@@ -76,6 +77,54 @@ app.post("/api/test-query", async (req, res) => {
     }
 
     return res.json(result);
+  } catch (error) {
+    return res.status(500).json({
+      error: `Error: ${error.message}`,
+    });
+  }
+});
+
+// Attempt to auto-repair a failing GraphQL query using the LLM, then (optionally)
+// validate/execute it against the dummy schema so the UI can immediately retry.
+// Request: { "query": "...", "error": "..." }
+// Response: { correctedQuery, result } OR { correctedQuery, errors }
+app.post("/api/fix-query", async (req, res) => {
+  const query = typeof req.body?.query === "string" ? req.body.query : "";
+  const errorMessage = typeof req.body?.error === "string" ? req.body.error : "";
+
+  if (!query.trim()) {
+    return res.status(400).json({
+      error: 'Missing required field "query" (string).',
+    });
+  }
+
+  if (!errorMessage.trim()) {
+    return res.status(400).json({
+      error: 'Missing required field "error" (string).',
+    });
+  }
+
+  try {
+    const correctedQuery = await repairGraphQLQuery({
+      failingQuery: query,
+      errorMessage,
+    });
+
+    // Try the corrected query immediately against dummy schema.
+    const result = await runQueryOnDummyData(correctedQuery, {});
+    if (result?.errors?.length) {
+      return res.status(200).json({
+        correctedQuery,
+        data: result.data ?? null,
+        errors: result.errors.map((e) => ({
+          message: e.message,
+          locations: e.locations,
+          path: e.path,
+        })),
+      });
+    }
+
+    return res.status(200).json({ correctedQuery, result });
   } catch (error) {
     return res.status(500).json({
       error: `Error: ${error.message}`,
