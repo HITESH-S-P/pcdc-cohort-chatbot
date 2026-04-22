@@ -226,6 +226,94 @@
         background: #f8fafc;
       }
 
+      .sidebar-section {
+        padding: 0 1rem 0.75rem 1rem;
+      }
+
+      .sidebar-title {
+        font-size: 0.85rem;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+        margin: 0.75rem 0 0.4rem 0;
+      }
+
+      .sidebar-subtitle {
+        font-size: 0.78rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .chip {
+        background: white;
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+      }
+
+      .chip:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        transform: translateY(-1px);
+        background: #f8fafc;
+      }
+
+      .mini-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .mini-btn {
+        background: white;
+        border: 1px solid var(--border);
+        padding: 0.6rem 0.7rem;
+        border-radius: 0.65rem;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 0.78rem;
+        transition: all 0.2s;
+        text-align: left;
+      }
+
+      .mini-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: #f8fafc;
+        transform: translateY(-1px);
+      }
+
+      .tiny-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.7rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: rgba(15, 23, 42, 0.75);
+        background: rgba(255, 255, 255, 0.7);
+      }
+
+      .tiny-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--primary);
+        box-shadow: 0 0 8px rgba(99, 102, 241, 0.35);
+      }
+
       /* Professional Code Card */
       .graphql-card {
         margin: 1rem 0;
@@ -439,12 +527,60 @@
 
       <div class="main-layout">
         <aside class="sidebar">
-          <div style="padding: 1.5rem">
-            <h4 style="margin-bottom: 0.5rem">AI Controls</h4>
+          <div style="padding: 1.25rem 1.5rem 0.5rem 1.5rem">
+            <h4 style="margin-bottom: 0.4rem">Home Options</h4>
             <p style="font-size: 0.8rem; color: var(--text-secondary)">
-              Natural language to GraphQL engine.
+              Pick an action to get started quickly.
             </p>
           </div>
+
+          <div class="sidebar-section">
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+              "
+            >
+              <div>
+                <div class="sidebar-title" style="margin-top: 0">
+                  Quick actions
+                </div>
+                <div class="sidebar-subtitle">
+                  One-click utilities for the current chat.
+                </div>
+              </div>
+              <span
+                class="tiny-badge"
+                id="transportBadge"
+                title="Chat transport"
+              >
+                <span class="tiny-dot"></span>
+                <span id="transportText">HTTP</span>
+              </span>
+            </div>
+
+            <div class="mini-actions">
+              <button class="mini-btn" onclick="openHowItWorks()" type="button">
+                ℹ️ How it works
+              </button>
+              <button class="mini-btn" onclick="clearChat()" type="button">
+                🧹 Clear chat
+              </button>
+              <button
+                class="mini-btn"
+                onclick="toggleTransport()"
+                type="button"
+              >
+                🔁 Toggle transport
+              </button>
+              <button class="mini-btn" onclick="focusComposer()" type="button">
+                ✍️ Focus input
+              </button>
+            </div>
+          </div>
+
           <button class="quick-btn" onclick="quickQuery('general')">
             ✨ What is PCDC?
           </button>
@@ -457,6 +593,76 @@
           <button class="quick-btn" onclick="quickQuery('explain')">
             🔍 Explain Query
           </button>
+
+          <div class="sidebar-section">
+            <div class="sidebar-title">Cohort templates</div>
+            <div class="sidebar-subtitle">
+              Click a template to immediately draft a GraphQL query.
+            </div>
+            <div class="chips">
+              <button
+                class="chip"
+                type="button"
+                onclick="
+                  sendPrompt(
+                    'Generate GraphQL query for breast cancer patients diagnosed in 2020',
+                  )
+                "
+              >
+                Breast cancer (2020)
+              </button>
+              <button
+                class="chip"
+                type="button"
+                onclick="
+                  sendPrompt(
+                    'Generate GraphQL query for AML patients age &lt; 10 with sex female',
+                  )
+                "
+              >
+                AML, age &lt; 10
+              </button>
+              <button
+                class="chip"
+                type="button"
+                onclick="
+                  sendPrompt(
+                    'Generate GraphQL query for patients with lung cancer and EGFR mutation',
+                  )
+                "
+              >
+                Lung + EGFR
+              </button>
+              <button
+                class="chip"
+                type="button"
+                onclick="
+                  sendPrompt(
+                    'Generate GraphQL query for neuroblastoma patients with stage 4 disease',
+                  )
+                "
+              >
+                Neuroblastoma stage 4
+              </button>
+            </div>
+
+            <div class="mini-actions" style="margin-top: 0.9rem">
+              <button
+                class="mini-btn"
+                onclick="copyLastGraphQL()"
+                type="button"
+              >
+                📋 Copy last GraphQL
+              </button>
+              <button
+                class="mini-btn"
+                onclick="testLastGraphQL()"
+                type="button"
+              >
+                🧪 Test last GraphQL
+              </button>
+            </div>
+          </div>
 
           <div
             style="
@@ -558,6 +764,7 @@
       const preferSocket = urlParams.get("transport") === "socket";
       let socket = null;
       let transportMode = preferSocket ? "socket" : "http";
+      const transportText = document.getElementById("transportText");
 
       function ensureSocket() {
         if (socket) return socket;
@@ -568,6 +775,11 @@
           sendBtn.disabled = false;
         });
         return socket;
+      }
+
+      function refreshTransportBadge() {
+        transportText.textContent =
+          transportMode === "socket" ? "Socket.IO" : "HTTP";
       }
 
       function addMessage(sender, content) {
@@ -651,6 +863,15 @@
         }
       }
 
+      function focusComposer() {
+        chatInput.focus();
+      }
+
+      function sendPrompt(prompt) {
+        chatInput.value = prompt;
+        sendMessage();
+      }
+
       function quickQuery(type) {
         const queries = {
           general: "Tell me about PCDC cohort discovery",
@@ -661,6 +882,63 @@
         };
         chatInput.value = queries[type];
         sendMessage();
+      }
+
+      function clearChat() {
+        chatMessages.innerHTML = `
+          <div class="message bot">
+            <h3 style="color: var(--primary); margin-bottom: 0.5rem">
+              Welcome, Researcher
+            </h3>
+            <p>
+              I am your specialized interface for the Pediatric Cancer Data
+              Commons. Describe a cohort, and I will draft the GraphQL query.
+            </p>
+          </div>
+        `;
+        status.textContent = "Systems Online";
+        focusComposer();
+      }
+
+      function toggleTransport() {
+        transportMode = transportMode === "socket" ? "http" : "socket";
+        refreshTransportBadge();
+
+        if (transportMode === "socket") ensureSocket();
+        addMessage(
+          "bot",
+          `🔁 Transport switched to <b>${escapeHtml(
+            transportMode === "socket" ? "Socket.IO" : "HTTP",
+          )}</b>.`,
+        );
+      }
+
+      function getLastGraphQLCard() {
+        const cards = chatMessages.querySelectorAll(".graphql-card");
+        if (!cards.length) return null;
+        return cards[cards.length - 1];
+      }
+
+      function copyLastGraphQL() {
+        const card = getLastGraphQLCard();
+        if (!card) {
+          addMessage("bot", "No GraphQL found yet. Generate a query first.");
+          return;
+        }
+        const code = card.querySelector(".graphql-code")?.innerText || "";
+        navigator.clipboard.writeText(code);
+        addMessage("bot", "📋 Copied the last GraphQL query to clipboard.");
+      }
+
+      function testLastGraphQL() {
+        const card = getLastGraphQLCard();
+        if (!card) {
+          addMessage("bot", "No GraphQL found yet. Generate a query first.");
+          return;
+        }
+        const testAction = card.querySelector(".graphql-action");
+        // Use existing handler for consistent behavior (incl. auto-fix).
+        runDummyTest(testAction);
       }
 
       function copyText(el) {
@@ -813,6 +1091,9 @@
       chatInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") sendMessage();
       });
+
+      refreshTransportBadge();
+      if (transportMode === "socket") ensureSocket();
     </script>
   </body>
 </html>
