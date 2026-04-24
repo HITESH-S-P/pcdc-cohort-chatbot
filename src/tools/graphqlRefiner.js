@@ -1,17 +1,17 @@
-const { GraphQLGenerator: Generator } = require("../graphql/generator");
+const { GraphQLGenerator } = require("../graphql/generator");
 
-class GraphQLGenerator {
+class GraphQLRefiner {
   constructor() {
-    this.generator = new Generator();
-    this.lastQuery = null;
-    this.lastDescription = null;
+    this.generator = new GraphQLGenerator();
   }
 
-  async execute(cohortDescription) {
+  async execute({ previousQuery, refinement, previousDescription }) {
     try {
-      const result = await this.generator.generate(cohortDescription);
-      this.lastQuery = result.query;
-      this.lastDescription = cohortDescription;
+      const result = await this.generator.refine({
+        previousQuery,
+        refinement,
+        previousDescription,
+      });
 
       const validationScore =
         result.validation?.score !== undefined && result.validation?.score !== null
@@ -24,7 +24,7 @@ class GraphQLGenerator {
             ? "INVALID"
             : "UNKNOWN";
 
-      let response = `GraphQL query generated for: "${cohortDescription}"\n\n`;
+      let response = `Refined GraphQL query based on your follow-up: "${refinement}"\n\n`;
       response += `\`\`\`graphql\n${result.query}\n\`\`\`\n\n`;
 
       if (result.validation) {
@@ -32,13 +32,13 @@ class GraphQLGenerator {
         response += `Matches: ${result.validation.matches?.join(", ") || "None"}\n`;
       }
 
-      response += `\nCopy the query into the PCDC GraphQL explorer.`;
-
+      response += `\nTip: you can keep refining (e.g. "add ageAtDiagnosis > 10").`;
       return response;
     } catch (error) {
-      return `⚠️ GraphQL generation failed: ${error.message}\n\nTry simpler description like "breast cancer patients"`;
+      return `⚠️ Refinement failed: ${error.message}\n\nTry: "add yearOfDiagnosis >= 2020"`;
     }
   }
 }
 
-module.exports = { GraphQLGenerator };
+module.exports = { GraphQLRefiner };
+

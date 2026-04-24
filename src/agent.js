@@ -2,6 +2,7 @@ const { LLMClient } = require("./llm/gemini");
 const { GeneralInquiryTool } = require("./tools/generalInquiry");
 const { DocBrowserTool } = require("./tools/docBrowser");
 const { GraphQLGenerator } = require("./tools/graphqlGenerator");
+const { GraphQLRefiner } = require("./tools/graphqlRefiner");
 const { QueryExplainer } = require("./tools/queryExplainer");
 const { QueryOptimizer } = require("./tools/queryOptimizer");
 
@@ -12,10 +13,17 @@ class LLMAgent {
       general: new GeneralInquiryTool(),
       docs: new DocBrowserTool(),
       graphql: new GraphQLGenerator(),
+      refine: new GraphQLRefiner(),
       explain: new QueryExplainer(),
       optimize: new QueryOptimizer(),
     };
     this.lastToolUsed = null;
+
+    // Lightweight conversation memory (server process lifetime).
+    this.memory = {
+      lastCohortDescription: null,
+      lastGraphQLQuery: null,
+    };
   }
 
   async processMessage(userMessage) {
@@ -55,6 +63,24 @@ class LLMAgent {
               cohortDescription: {
                 type: "string",
                 description: "Natural language description of patient cohort",
+              },
+            },
+          },
+        },
+      },
+      {
+        type: "function",
+        function: {
+          name: "refine_graphql",
+          description:
+            "Refine the previously generated GraphQL query using a follow-up instruction (e.g. add/remove constraints).",
+          parameters: {
+            type: "object",
+            properties: {
+              refinement: {
+                type: "string",
+                description:
+                  "Follow-up instruction to refine the previous cohort/query (e.g. 'only year 2020', 'add ageAtDiagnosis > 10').",
               },
             },
           },
@@ -103,11 +129,13 @@ TOOLS:
 1. general_inquiry: General PCDC questions
 2. browse_docs: Documentation, schema questions  
 3. generate_graphql: "Show patients with...", "Find cohort of...", "breast cancer", etc.
-4. explain_query: "What does this query do?", "Explain this GraphQL", etc.
-5. optimize_query: "Optimize this query", "Improve this GraphQL", "Make this query better", etc.
+4. refine_graphql: Follow-ups that modify the LAST generated cohort/query, like "now add age > 10", "make it 2020 only", "also include lung cancer", "remove gender filter", etc.
+5. explain_query: "What does this query do?", "Explain this GraphQL", etc.
+6. optimize_query: "Optimize this query", "Improve this GraphQL", "Make this query better", etc.
 
 DETECT USER INTENT:
 - Cohort queries → generate_graphql
+- If user asks a follow-up refinement and we already have a previous query → refine_graphql
 - "What is...", "Explain...", "How to..." → general_inquiry or browse_docs
 - "What does this query do?", "Explain this GraphQL" → explain_query
 - "Optimize", "Improve", "Better query" → optimize_query
@@ -134,10 +162,28 @@ Respond conversationally.`,
       // otherwise the UI can't reliably show the generated query.
       if (
         toolName === "generate_graphql" ||
+        toolName === "refine_graphql" ||
         toolName === "browse_docs" ||
         toolName === "explain_query" ||
         toolName === "optimize_query"
       ) {
+        // Update memory when we successfully produced a new/updated query.
+        if (toolName === "generate_graphql") {
+          this.memory.lastCohortDescription =
+            this.tools.graphql.lastDescription ?? null;
+          this.memory.lastGraphQLQuery = this.tools.graphql.lastQuery ?? null;
+        }
+        if (toolName === "refine_graphql") {
+          // Extract the latest query from the fenced block returned by the tool.
+          const match =
+            typeof toolResult === "string"
+              ? toolResult.match(/```graphql\s*([\s\S]*?)\s*```/)
+              : null;
+          const refinedQuery = match ? match[1].trim() : null;
+          if (refinedQuery) {
+            this.memory.lastGraphQLQuery = refinedQuery;
+          }
+        }
         return toolResult;
       }
 
@@ -151,6 +197,17 @@ Respond conversationally.`,
     switch (toolName) {
       case "generate_graphql":
         return await this.tools.graphql.execute(args.cohortDescription);
+      case "refine_graphql": {
+        const previousQuery = this.memory.lastGraphQLQuery;
+        if (!previousQuery || !previousQuery.trim()) {
+          return `⚠️ I can refine a query only after we've generated one.\n\nTry: "Show breast cancer patients diagnosed in 2020" and then say "now add ageAtDiagnosis >= 10".`;
+        }
+        return await this.tools.refine.execute({
+          previousQuery,
+          refinement: args.refinement,
+          previousDescription: this.memory.lastCohortDescription,
+        });
+      }
       case "general_inquiry":
         return await this.tools.general.execute(args.query);
       case "browse_docs":
