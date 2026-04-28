@@ -359,6 +359,37 @@
         overflow: hidden;
         border: 1px solid rgba(148, 163, 184, 0.2);
       }
+
+      .saved-query-item {
+        display: grid;
+        gap: 0.45rem;
+        margin: 0.5rem 0;
+        padding: 0.85rem 1rem;
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 0.85rem;
+        border: 1px solid rgba(226, 232, 240, 0.85);
+      }
+
+      .saved-query-preview {
+        font-size: 0.8rem;
+        color: #0f172a;
+        line-height: 1.4;
+        max-height: 4.2rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .saved-query-actions {
+        display: flex;
+        gap: 0.45rem;
+        flex-wrap: wrap;
+      }
+
+      .saved-query-actions .mini-btn {
+        flex: 1;
+        min-width: 76px;
+      }
+
       .json-header {
         background: #07101f;
         padding: 0.5rem 1rem;
@@ -583,6 +614,27 @@
             </div>
           </div>
 
+          <div class="sidebar-section">
+            <div class="sidebar-title">Saved queries</div>
+            <div class="sidebar-subtitle">
+              Recent GraphQL queries you generated. Reuse, copy, or test them.
+            </div>
+            <div class="saved-queries-list" id="savedQueriesList">
+              <div class="chip" style="cursor: default; opacity: 0.7">
+                No saved queries yet.
+              </div>
+            </div>
+            <div class="mini-actions" style="margin-top: 0.75rem">
+              <button
+                class="mini-btn"
+                onclick="clearSavedQueries()"
+                type="button"
+              >
+                🗑️ Clear history
+              </button>
+            </div>
+          </div>
+
           <button class="quick-btn" onclick="quickQuery('general')">
             ✨ What is PCDC?
           </button>
@@ -790,6 +842,11 @@
 
         // Handle GraphQL formatting
         let formatted = content;
+        const graphqlMatch = content.match(/```graphql\s*([\s\S]*?)\s*```/i);
+        if (graphqlMatch) {
+          saveQueryToHistory(graphqlMatch[1].trim());
+        }
+
         if (content.includes("```graphql")) {
           formatted = content.replace(
             /```graphql\s*([\s\S]*?)\s*```/gi,
@@ -915,6 +972,19 @@
         );
       }
 
+      const savedQueriesKey = "pcdc.savedQueries";
+      let savedQueries = [];
+
+      function loadSavedQueries() {
+        try {
+          const raw = localStorage.getItem(savedQueriesKey);
+          savedQueries = raw ? JSON.parse(raw) : [];
+        } catch (err) {
+          savedQueries = [];
+        }
+        renderSavedQueries();
+      }
+
       function getLastGraphQLCard() {
         const cards = chatMessages.querySelectorAll(".graphql-card");
         if (!cards.length) return null;
@@ -938,32 +1008,101 @@
           addMessage("bot", "No GraphQL found yet. Generate a query first.");
           return;
         }
-        const testAction = card.querySelector(".graphql-action");
-        // Use existing handler for consistent behavior (incl. auto-fix).
-        runDummyTest(testAction);
+        const code = card.querySelector(".graphql-code").innerText;
+        runDummyTestFromQuery(code);
       }
 
-      function copyText(el) {
-        const card = el.closest(".graphql-card");
-        const code = card.querySelector(".graphql-code").innerText;
-        navigator.clipboard.writeText(code);
-        el.innerText = "Copied!";
-        setTimeout(() => (el.innerText = "Copy"), 2000);
+      function saveQueryToHistory(query) {
+        if (!query || typeof query !== "string") return;
+        const trimmed = query.trim();
+        if (!trimmed) return;
+
+        const existingIndex = savedQueries.findIndex(
+          (item) => item.query === trimmed,
+        );
+        if (existingIndex !== -1) {
+          savedQueries.splice(existingIndex, 1);
+        }
+
+        savedQueries.unshift({
+          query: trimmed,
+          preview: trimmed.replace(/\s+/g, " ").slice(0, 120),
+          createdAt: Date.now(),
+        });
+
+        if (savedQueries.length > 5) savedQueries.length = 5;
+        localStorage.setItem(savedQueriesKey, JSON.stringify(savedQueries));
+        renderSavedQueries();
       }
 
-      async function runDummyTest(el) {
-        const card = el.closest(".graphql-card");
-        const code = card.querySelector(".graphql-code").innerText;
+      function renderSavedQueries() {
+        const container = document.getElementById("savedQueriesList");
+        container.innerHTML = "";
 
+        if (!savedQueries.length) {
+          container.innerHTML = `
+            <div class="chip" style="cursor: default; opacity: 0.7;">
+              No saved queries yet.
+            </div>
+          `;
+          return;
+        }
+
+        savedQueries.forEach((entry, index) => {
+          const item = document.createElement("div");
+          item.className = "saved-query-item";
+          item.innerHTML = `
+            <div class="saved-query-preview">${escapeHtml(entry.preview)}</div>
+            <div class="saved-query-actions">
+              <button class="mini-btn" onclick="copySavedQuery(${index})" type="button">Copy</button>
+              <button class="mini-btn" onclick="testSavedQuery(${index})" type="button">Test</button>
+              <button class="mini-btn" onclick="loadSavedQuery(${index})" type="button">Load</button>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+      }
+
+      function copySavedQuery(index) {
+        const item = savedQueries[index];
+        if (!item) return;
+        navigator.clipboard.writeText(item.query);
+        addMessage("bot", "📋 Saved query copied to clipboard.");
+      }
+
+      function loadSavedQuery(index) {
+        const item = savedQueries[index];
+        if (!item) return;
+        chatInput.value = item.query;
+        addMessage(
+          "bot",
+          "Loaded saved query into the composer. Edit or send it.",
+        );
+        focusComposer();
+      }
+
+      function testSavedQuery(index) {
+        const item = savedQueries[index];
+        if (!item) return;
+        runDummyTestFromQuery(item.query);
+      }
+
+      function clearSavedQueries() {
+        savedQueries = [];
+        localStorage.removeItem(savedQueriesKey);
+        renderSavedQueries();
+        addMessage("bot", "Saved query history cleared.");
+      }
+
+      async function runDummyTestFromQuery(query) {
         status.textContent = "Testing on dummy data...";
         sendBtn.disabled = true;
-        el.innerText = "Testing...";
 
         try {
           const resp = await fetch("/api/test-query", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ query: code }),
+            body: JSON.stringify({ query }),
           });
 
           const data = await resp.json().catch(() => null);
@@ -993,16 +1132,13 @@
         } catch (e) {
           const errMsg = String(e.message || e);
 
-          // Auto-repair loop: on validation/runtime errors, ask backend to generate
-          // a corrected query and retry once.
           status.textContent = "Query failed — auto-fixing...";
-          el.innerText = "Fixing...";
 
           try {
             const fixResp = await fetch("/api/fix-query", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query: code, error: errMsg }),
+              body: JSON.stringify({ query, error: errMsg }),
             });
 
             const fixData = await fixResp.json().catch(() => null);
@@ -1062,8 +1198,15 @@
           }
         } finally {
           sendBtn.disabled = false;
-          el.innerText = "Test";
         }
+      }
+
+      async function runDummyTest(el) {
+        const card = el.closest(".graphql-card");
+        const code = card.querySelector(".graphql-code").innerText;
+        el.innerText = "Testing...";
+        await runDummyTestFromQuery(code);
+        el.innerText = "Test";
       }
 
       function copyJson(el) {
@@ -1094,6 +1237,7 @@
         if (e.key === "Enter") sendMessage();
       });
 
+      loadSavedQueries();
       refreshTransportBadge();
       if (transportMode === "socket") ensureSocket();
     </script>

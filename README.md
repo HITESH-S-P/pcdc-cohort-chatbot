@@ -93,7 +93,11 @@ This avoids the common issue where GraphQL is displayed as plain AI text and bec
 
 - Generated queries are validated using the project’s GraphQL schema evaluator.
 
-5. **User-friendly GraphQL viewer UI**
+5. **Saved query history**
+
+- The UI keeps recent generated GraphQL queries so you can reuse, copy, or test them quickly.
+
+6. **User-friendly GraphQL viewer UI**
 
 - Code card layout, safe rendering, and one-click copy.
 
