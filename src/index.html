@@ -632,6 +632,20 @@
               >
                 🗑️ Clear history
               </button>
+              <button
+                class="mini-btn"
+                onclick="exportSavedQueries()"
+                type="button"
+              >
+                📤 Export JSON
+              </button>
+              <button
+                class="mini-btn"
+                onclick="importSavedQueries()"
+                type="button"
+              >
+                📥 Import JSON
+              </button>
             </div>
           </div>
 
@@ -802,6 +816,13 @@
         </div>
       </div>
     </div>
+    <input
+      id="importHistoryInput"
+      type="file"
+      accept="application/json"
+      style="display: none"
+      onchange="handleImportFile(event)"
+    />
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -1092,6 +1113,96 @@
         localStorage.removeItem(savedQueriesKey);
         renderSavedQueries();
         addMessage("bot", "Saved query history cleared.");
+      }
+
+      function exportSavedQueries() {
+        if (!savedQueries.length) {
+          addMessage("bot", "No saved queries available to export.");
+          return;
+        }
+
+        const exportData = JSON.stringify(savedQueries, null, 2);
+        const blob = new Blob([exportData], { type: "application/json" });
+        const filename = `pcdc-saved-queries-${new Date()
+          .toISOString()
+          .slice(0, 10)}.json`;
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = filename;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+        addMessage(
+          "bot",
+          `✔️ Saved query history exported as <code>${filename}</code>.`,
+        );
+      }
+
+      function importSavedQueries() {
+        const input = document.getElementById("importHistoryInput");
+        if (!input) return;
+        input.value = "";
+        input.click();
+      }
+
+      function handleImportFile(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const imported = JSON.parse(reader.result);
+            if (!Array.isArray(imported)) {
+              throw new Error(
+                "Import file must contain an array of saved queries.",
+              );
+            }
+
+            const normalized = imported
+              .filter((item) => item && typeof item.query === "string")
+              .map((item) => ({
+                query: item.query.trim(),
+                preview: item.query.trim().replace(/\s+/g, " ").slice(0, 120),
+                createdAt: item.createdAt || Date.now(),
+              }))
+              .filter((item) => item.query);
+
+            if (!normalized.length) {
+              throw new Error("No valid saved queries were found in the file.");
+            }
+
+            const merged = [...normalized, ...savedQueries];
+            const unique = [];
+            const seen = new Set();
+            merged.forEach((item) => {
+              if (!seen.has(item.query)) {
+                seen.add(item.query);
+                unique.push(item);
+              }
+            });
+
+            savedQueries = unique.slice(0, 5);
+            localStorage.setItem(savedQueriesKey, JSON.stringify(savedQueries));
+            renderSavedQueries();
+            addMessage(
+              "bot",
+              `✔️ Imported ${savedQueries.length} saved query${
+                savedQueries.length === 1 ? "" : "ies"
+              } from file.`,
+            );
+          } catch (err) {
+            addMessage(
+              "bot",
+              `❌ Failed to import saved queries: ${escapeHtml(
+                String(err.message || err),
+              )}`,
+            );
+          }
+        };
+        reader.readAsText(file);
       }
 
       async function runDummyTestFromQuery(query) {

@@ -95,7 +95,7 @@ This avoids the common issue where GraphQL is displayed as plain AI text and bec
 
 5. **Saved query history**
 
-- The UI keeps recent generated GraphQL queries so you can reuse, copy, or test them quickly.
+- The UI keeps recent generated GraphQL queries so you can reuse, copy, test, export, or import them quickly.
 
 6. **User-friendly GraphQL viewer UI**
 
